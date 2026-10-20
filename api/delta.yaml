@@ -33,6 +33,21 @@ info:
     header on every request. Authentication is not redefined here to stay consistent with
     the existing UC API spec.
 
+    Client identification: Clients SHOULD identify themselves with the standard HTTP
+    `User-Agent` header (RFC 9110, Section 10.1.5). The header lets a server find which
+    engines and Delta libraries send requests, for observability, debugging, support, and
+    data safety. The `user-agent` parameter in the components section of this document
+    defines the recommended format.
+
+    - A server MAY reject a request with HTTP 400 when the header is absent or does not
+      identify a client that the server accepts for the operation. For example, a server can
+      accept only known writers on paths that write data. The error message SHOULD tell the
+      client to set the `User-Agent` header.
+    - The client sets the value and can spoof it. Thus, servers MUST NOT use it in place of
+      the authentication and authorization of the principal.
+    - The header is not a capability negotiation mechanism. Clients send the
+      `protocol-versions` parameter to `getConfig` to select an API version.
+
 tags:
   - name: DeltaConfiguration
     description: |
@@ -534,6 +549,39 @@ components:
       required: true
       schema:
         type: string
+
+    # Header Parameters
+    user-agent:
+      name: User-Agent
+      in: header
+      description: |
+        Header for a client to identify itself to the catalog. The value follows the standard
+        HTTP `User-Agent` grammar (RFC 9110, Section 10.1.5): a whitespace-separated list of
+        `product/version` tokens.
+
+        Clients SHOULD include these product tokens:
+
+        - A token for the engine or application, for example `Spark` or `flink`.
+        - A token for the Delta library that reads and writes the Delta tables, for example
+          `Delta` (delta-spark) or `delta-kernel`.
+        - A token for the Unity Catalog client library, if the client uses one. The Unity
+          Catalog Java client adds `UnityCatalog-Java-Client/<version>` automatically.
+
+        The order of the tokens has no meaning.
+
+        Examples:
+
+        - `UnityCatalog-Java-Client/0.5.0 Java/17.0.9 Scala/2.13.16 Delta/4.3.1 Spark/4.1.1`:
+          delta-spark.
+        - `UnityCatalog-Java-Client/0.5.0 flink/2.3.0 delta-kernel/4.3.1 flink-sink/4.3.1`:
+          the Delta Flink connector.
+
+        See "Client identification" in the API description for the rules that apply to
+        servers.
+      required: false
+      schema:
+        type: string
+      example: "UnityCatalog-Java-Client/0.5.0 Java/17.0.9 Scala/2.13.16 Delta/4.3.1 Spark/4.1.1"
 
   schemas:
 
